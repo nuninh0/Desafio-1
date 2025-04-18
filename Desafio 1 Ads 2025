@@ -1,0 +1,293 @@
+# Sistema de Gerenciamento de Restaurante
+
+
+# Importando biblioteca para trabalhar com datas
+import datetime
+
+# ----------------------
+# ESTRUTURA DE DADOS
+# ----------------------
+
+estoque = []  # Lista para armazenar produtos do estoque
+cardapio = []  # Lista para armazenar itens do cardápio
+mesas = []  # Lista de mesas cadastradas
+pedidos = []  # Lista de pedidos realizados
+
+# ----------------------
+# FUNÇÕES DE UTILIDADE
+# ----------------------
+
+def exibir_menu(titulo, opcoes):
+    print(f"\n--- {titulo} ---")
+    for i, opcao in enumerate(opcoes, 1):
+        print(f"{i}. {opcao}")
+    print("0. Voltar")
+
+def input_int(msg):
+    try:
+        return int(input(msg))
+    except ValueError:
+        print("Entrada inválida! Digite um número inteiro.")
+        return input_int(msg)
+
+# ----------------------
+# GESTÃO DE ESTOQUE
+# ----------------------
+
+def cadastrar_produto():
+    print("\nCadastrar novo produto")
+    codigo = input("Código do produto: ")
+    nome = input("Nome: ")
+    quantidade = int(input("Quantidade: "))
+    unidade = input("Unidade de medida (ex: kg, un): ")
+    preco = float(input("Preço unitário: R$ "))
+    validade = input("Data de validade (dd/mm/aaaa): ")
+
+    produto = {
+        'codigo': codigo,
+        'nome': nome,
+        'quantidade': quantidade,
+        'unidade': unidade,
+        'preco': preco,
+        'validade': validade
+    }
+
+    estoque.append(produto)
+    print("Produto cadastrado com sucesso!")
+
+def listar_estoque():
+    print("\n--- Estoque Atual ---")
+    for produto in estoque:
+        print(f"{produto['codigo']} - {produto['nome']} ({produto['quantidade']} {produto['unidade']}) - Val: {produto['validade']}")
+
+# ----------------------
+# GESTÃO DO CARDÁPIO
+# ----------------------
+
+def cadastrar_item_cardapio():
+    print("\nCadastrar novo item no cardápio")
+    nome = input("Nome do prato: ")
+    descricao = input("Descrição: ")
+    preco = float(input("Preço: R$ "))
+
+    item = {
+        'nome': nome,
+        'descricao': descricao,
+        'preco': preco
+    }
+
+    cardapio.append(item)
+    print("Item adicionado ao cardápio com sucesso!")
+
+def listar_cardapio():
+    print("\n--- Cardápio ---")
+    for i, item in enumerate(cardapio, 1):
+        print(f"{i}. {item['nome']} - R$ {item['preco']}\n   {item['descricao']}")
+
+# ----------------------
+# GESTÃO DE MESAS E PEDIDOS
+# ----------------------
+
+def cadastrar_mesa():
+    print("\nCadastrar nova mesa")
+    numero = input_int("Número da mesa: ")
+    capacidade = input_int("Capacidade (quantidade de pessoas): ")
+
+    mesa = {
+        'numero': numero,
+        'capacidade': capacidade,
+        'status': 'livre'
+    }
+
+    mesas.append(mesa)
+    print("Mesa cadastrada com sucesso!")
+
+def listar_mesas():
+    print("\n--- Mesas Cadastradas ---")
+    for mesa in mesas:
+        print(f"Mesa {mesa['numero']} - Cap: {mesa['capacidade']} - Status: {mesa['status']}")
+
+def registrar_pedido():
+    print("\nRegistrar pedido para uma mesa")
+    numero_mesa = input_int("Número da mesa: ")
+
+    mesa = next((m for m in mesas if m['numero'] == numero_mesa), None)
+    if not mesa:
+        print("Mesa não encontrada!")
+        return
+
+    if mesa['status'] == 'livre':
+        mesa['status'] = 'ocupada'
+
+    pedido = {
+        'mesa': numero_mesa,
+        'itens': []
+    }
+
+    itens_pedidos = set()
+
+    while True:
+        listar_cardapio()
+        opcao = input_int("Escolha o número do item (0 para finalizar): ")
+        if opcao == 0:
+            break
+        elif 1 <= opcao <= len(cardapio):
+            item = cardapio[opcao - 1]
+            if item['nome'] not in itens_pedidos:
+                pedido['itens'].append(item)
+                itens_pedidos.add(item['nome'])
+                print(f"Adicionado: {item['nome']}")
+            else:
+                print("Este item já foi adicionado ao pedido.")
+        else:
+            print("Item inválido!")
+
+    pedidos.append(pedido)
+    print("Pedido registrado com sucesso!")
+
+def listar_pedidos():
+    print("\n--- Pedidos Realizados ---")
+    for pedido in pedidos:
+        print(f"Mesa {pedido['mesa']}:")
+        for item in pedido['itens']:
+            print(f" - {item['nome']} - R$ {item['preco']}")
+
+# ----------------------
+# GESTÃO DE PAGAMENTOS
+# ----------------------
+
+def calcular_conta():
+    print("\nCalcular conta por mesa")
+    numero_mesa = input_int("Número da mesa: ")
+
+    pedidos_mesa = [p for p in pedidos if p['mesa'] == numero_mesa]
+
+    if not pedidos_mesa:
+        print("Nenhum pedido encontrado para essa mesa.")
+        return
+
+    total = 0
+    print(f"\n--- Conta da Mesa {numero_mesa} ---")
+    for pedido in pedidos_mesa:
+        for item in pedido['itens']:
+            print(f"{item['nome']} - R$ {item['preco']:.2f}")
+            total += item['preco']
+
+    print(f"Total: R$ {total:.2f}")
+
+    aplicar_taxa = input("Deseja aplicar taxa de serviço de 10%? (s/n): ").lower()
+    if aplicar_taxa == 's':
+        taxa = total * 0.10
+        total += taxa
+        print(f"Taxa de serviço: R$ {taxa:.2f}")
+
+    aplicar_desconto = input("Deseja aplicar algum desconto? (s/n): ").lower()
+    if aplicar_desconto == 's':
+        desconto = float(input("Valor do desconto: R$ "))
+        total -= desconto
+        print(f"Desconto aplicado: R$ {desconto:.2f}")
+
+    print(f"\nTotal final a pagar: R$ {total:.2f}")
+
+    forma_pagamento = input("Forma de pagamento (dinheiro/cartão): ").lower()
+    if forma_pagamento == 'dinheiro':
+        valor_pago = float(input("Valor recebido: R$ "))
+        troco = valor_pago - total
+        print(f"Troco: R$ {troco:.2f}")
+
+    for mesa in mesas:
+        if mesa['numero'] == numero_mesa:
+            mesa['status'] = 'livre'
+            break
+    print("Mesa liberada. Pagamento finalizado com sucesso!")
+
+# ----------------------
+# MENUS
+# ----------------------
+
+def menu_estoque():
+    while True:
+        exibir_menu("Gestão de Estoque", ["Cadastrar Produto", "Listar Estoque"])
+        opcao = input_int("Escolha uma opção: ")
+
+        if opcao == 1:
+            cadastrar_produto()
+        elif opcao == 2:
+            listar_estoque()
+        elif opcao == 0:
+            break
+        else:
+            print("Opção inválida!")
+
+def menu_cardapio():
+    while True:
+        exibir_menu("Gestão do Cardápio", ["Cadastrar Item", "Listar Cardápio"])
+        opcao = input_int("Escolha uma opção: ")
+
+        if opcao == 1:
+            cadastrar_item_cardapio()
+        elif opcao == 2:
+            listar_cardapio()
+        elif opcao == 0:
+            break
+        else:
+            print("Opção inválida!")
+
+def menu_mesas_pedidos():
+    while True:
+        exibir_menu("Gestão de Mesas e Pedidos", ["Cadastrar Mesa", "Listar Mesas", "Registrar Pedido", "Listar Pedidos"])
+        opcao = input_int("Escolha uma opção: ")
+
+        if opcao == 1:
+            cadastrar_mesa()
+        elif opcao == 2:
+            listar_mesas()
+        elif opcao == 3:
+            registrar_pedido()
+        elif opcao == 4:
+            listar_pedidos()
+        elif opcao == 0:
+            break
+        else:
+            print("Opção inválida!")
+
+def menu_pagamentos():
+    while True:
+        exibir_menu("Gestão de Pagamentos", ["Calcular Conta e Finalizar Pagamento"])
+        opcao = input_int("Escolha uma opção: ")
+
+        if opcao == 1:
+            calcular_conta()
+        elif opcao == 0:
+            break
+        else:
+            print("Opção inválida!")
+
+def menu_principal():
+    while True:
+        exibir_menu("Sistema de Restaurante", [
+            "Gestão de Estoque",
+            "Gestão da Cozinha (Cardápio)",
+            "Gestão de Mesas e Pedidos",
+            "Gestão de Pagamentos",
+            "Relatórios (Em breve)"
+        ])
+
+        opcao = input_int("Escolha uma opção: ")
+
+        if opcao == 1:
+            menu_estoque()
+        elif opcao == 2:
+            menu_cardapio()
+        elif opcao == 3:
+            menu_mesas_pedidos()
+        elif opcao == 4:
+            menu_pagamentos()
+        elif opcao == 0:
+            print("Saindo do sistema... Até mais!")
+            break
+        else:
+            print("Opção inválida!")
+
+# Iniciar o programa
+menu_principal()
